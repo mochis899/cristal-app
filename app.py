@@ -8,13 +8,16 @@ st.set_page_config(page_title="CriSTAL Detallado", page_icon="📊", layout="cen
 st.title("📊 Registro CriSTAL Detallado")
 st.markdown("Herramienta para la validación externa del CriSTAL Score Modificado.")
 
+# --- INICIALIZACIÓN DE LA CONEXIÓN (IMPORTANTE) ---
+conn = None 
+
 # --- CONEXIÓN ---
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
     SHEET_NAME = "Hoja1"
     df_existente = conn.read(worksheet=SHEET_NAME) 
-except:
-    st.error("⚠️ No se pudo conectar a Google Sheets. Configure los Secrets.")
+except Exception as e:
+    st.error(f"⚠️ No se pudo conectar a Google Sheets. Configura los Secrets correctamente. Los datos no se guardarán en la nube. Error: {e}")
     df_existente = pd.DataFrame()
 
 # --- FORMULARIO ---
@@ -143,10 +146,13 @@ with st.form("entry_form", clear_on_submit=True):
             "V9_Fragilidad_Detalle": v9_val, "V9_Fragilidad_Puntos": v9_pts
         }])
         
-        # --- ENVIAR A GOOGLE SHEETS ---
-        try:
-            df_actualizado = pd.concat([df_existente, nuevo_registro], ignore_index=True)
-            conn.update(data=df_actualizado, worksheet=SHEET_NAME) 
-            st.toast("Datos guardados en la nube correctamente")
-        except Exception as e:
-            st.error(f"Error al guardar en la nube: {e}")
+        # --- ENVIAR A GOOGLE SHEETS (CON VERIFICACIÓN) ---
+        if conn is not None:
+            try:
+                df_actualizado = pd.concat([df_existente, nuevo_registro], ignore_index=True)
+                conn.update(data=df_actualizado, worksheet=SHEET_NAME) 
+                st.toast("Datos guardados en la nube correctamente")
+            except Exception as e:
+                st.error(f"Error al guardar en la nube: {e}")
+        else:
+            st.warning("⚠️ El cálculo fue exitoso, pero la conexión a Google Sheets falló. Los datos no se han guardado.")
