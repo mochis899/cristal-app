@@ -126,8 +126,8 @@ with st.form("entry_form", clear_on_submit=True):
         # --- MOSTRAR RESULTADOS INMEDIATOS ---
         st.success(f"✅ Paciente **{id_paciente}** guardado correctamente.")
         col_s, col_p = st.columns(2)
-        col_s.metric("Score CriSTAL Total", f"**{score_total}** puntos")
-        col_p.metric("Mortalidad Est. (30 días)", f"**{prob_pct}%**")
+        col_s.metric("Score CriSTAL Total", f"{score_total} puntos")
+        col_p.metric("Mortalidad Est. (30 días)", f"{prob_pct}%")
         
         # --- PREPARAR FILA PARA EXCEL ---
         nuevo_registro = pd.DataFrame([{
