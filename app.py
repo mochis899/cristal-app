@@ -7,17 +7,19 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="CriSTAL Detallado", page_icon="📊", layout="centered")
 st.title("📊 Registro CriSTAL Detallado")
 
-# --- CONEXIÓN ---
-df_existente = pd.DataFrame()  # Inicializar siempre
-
+# --- CONEXIÓN A GOOGLE SHEETS (BASE DE DATOS) ---
+# Se necesita 'spreadsheet' en .streamlit/secrets.toml
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    df_temp = conn.read()
-    if df_temp is not None and not df_temp.empty:
-        df_existente = df_temp
-except Exception as e:
-    st.error(f"⚠️ Error de conexión: {e}")
-    st.info("Configura los 'Secrets' para conectar Google Sheets.")
+    
+    # 🚨 PUNTOS CRÍTICOS: Especificar el nombre de la hoja (worksheet)
+    SHEET_NAME = "Hoja1" 
+    
+    # Lectura del DataFrame existente
+    df_existente = conn.read(worksheet=SHEET_NAME) 
+except:
+    st.error("⚠️ No se pudo conectar a Google Sheets. Configure los Secrets.")
+    df_existente = pd.DataFrame()
 
 # --- FORMULARIO ---
 with st.form("entry_form", clear_on_submit=True):
