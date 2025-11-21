@@ -150,4 +150,3 @@ with st.form("entry_form", clear_on_submit=True):
             st.toast("Datos guardados en la nube correctamente")
         except Exception as e:
             st.error(f"Error al guardar en la nube: {e}")
-    
