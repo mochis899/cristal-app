@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime
+import json
+import base64
 
 # --- LIBRERÍAS DE CONEXIÓN GSPREAD ---
 import gspread
@@ -12,20 +14,20 @@ st.set_page_config(page_title="CriSTAL Secuencial", page_icon="🔢", layout="ce
 st.title("📊 Registro CriSTAL Detallado")
 st.markdown("Variables del Score Modificado, ordenadas del 1 al 9.")
 
-# --- INICIALIZACIÓN DE LA CONEXIÓN CON GSPREAD ---
+# --- INICIALIZACIÓN DE LA CONEXIÓN CON GSPREAD (CON BASE64) ---
 ws = None
 conn_exitosa = False
 
 try:
-    # 1. Creación de credenciales
-    # 🚨 CORRECCIÓN: Usamos dict() para crear una copia mutable y evitar el error ".copy()"
-    service_account_info = dict(st.secrets["gcp_service_account"])
+    # 1. Obtener la cadena Base64 del secrets
+    base64_string = st.secrets["gcp"]["service_account_base64"]
     
-    # 🚨 SOLUCIÓN para el error 'Invalid private key':
-    # Reemplaza los caracteres literales '\n' (que Streamlit inserta mal) 
-    # por un salto de línea real, requerido por el formato PEM.
-    service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
+    # 2. Decodificar la cadena Base64 a bytes y luego a JSON (diccionario de Python)
+    # 🚨 ESTE ES EL PASO CRÍTICO QUE BYPASSEA EL ERROR DE FORMATO TOML
+    json_service_account = base64.b64decode(base64_string).decode('utf-8')
+    service_account_info = json.loads(json_service_account)
     
+    # 3. Preparar credenciales
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
@@ -36,27 +38,27 @@ try:
         scopes=scopes
     )
     
-    # 2. Autorización de gspread
+    # 4. Autorización y conexión
     gc = gspread.authorize(credentials)
     
-    # 3. Apertura de la hoja y la pestaña
     SPREADSHEET_ID = st.secrets["gcp"]["spreadsheet_id"]
-    WORKSHEET_NAME = st.secrets["gcp"]["worksheet_name"] # "Registro"
+    WORKSHEET_NAME = st.secrets["gcp"]["worksheet_name"] 
     
     sh = gc.open_by_key(SPREADSHEET_ID)
     ws = sh.worksheet(WORKSHEET_NAME) 
     
-    # 4. Lectura de datos existentes 
+    # 5. Lectura de datos existentes 
     df_existente = pd.DataFrame(ws.get_all_records()) 
     conn_exitosa = True
     
 except Exception as e:
+    # En caso de error, muestra el error de conexión
     st.error(f"⚠️ No se pudo conectar a Google Sheets. Los datos no se guardarán. Error: {e}")
     df_existente = pd.DataFrame()
     conn_exitosa = False
 
 # -----------------------------------------------------------------------
-# --- FORMULARIO ---
+# --- FORMULARIO (Se mantiene igual que antes) ---
 # -----------------------------------------------------------------------
 
 with st.form("entry_form", clear_on_submit=True):
