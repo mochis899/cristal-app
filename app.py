@@ -2,24 +2,58 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from streamlit_gsheets import GSheetsConnection
+
+# --- NUEVAS LIBRERÍAS DE CONEXIÓN ---
+import gspread
+from google.oauth2.service_account import Credentials
+# ------------------------------------
 
 st.set_page_config(page_title="CriSTAL Secuencial", page_icon="🔢", layout="centered")
-st.title("📊 Registro CriSTAL Score")
+st.title("📊 Registro CriSTAL Detallado")
+st.markdown("Variables del Score Modificado, ordenadas del 1 al 9.")
 
-# --- INICIALIZACIÓN DE LA CONEXIÓN ---
-conn = None 
+# --- INICIALIZACIÓN DE LA CONEXIÓN CON GSPREAD ---
+ws = None
+conn_exitosa = False
 
-# --- CONEXIÓN ---
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    SHEET_NAME = "Registro"
-    df_existente = conn.read(worksheet=SHEET_NAME) 
+    # 1. Creación de credenciales
+    # Se extrae la información completa del JSON del nuevo secrets.toml
+    service_account_info = st.secrets["gcp_service_account"]
+    
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    
+    credentials = Credentials.from_service_account_info(
+        service_account_info,
+        scopes=scopes
+    )
+    
+    # 2. Autorización de gspread
+    gc = gspread.authorize(credentials)
+    
+    # 3. Apertura de la hoja y la pestaña
+    SPREADSHEET_ID = st.secrets["gcp"]["spreadsheet_id"]
+    WORKSHEET_NAME = st.secrets["gcp"]["worksheet_name"] # Debe ser "Registro"
+    
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    ws = sh.worksheet(WORKSHEET_NAME) 
+    
+    # 4. Lectura de datos existentes (necesario para la cabecera)
+    df_existente = pd.DataFrame(ws.get_all_records()) 
+    conn_exitosa = True
+    
 except Exception as e:
-    st.error(f"⚠️ No se pudo conectar a Google Sheets. Configure los Secrets correctamente. Los datos no se guardarán en la nube. Error: {e}")
+    st.error(f"⚠️ No se pudo conectar a Google Sheets. Los datos no se guardarán. Error: {e}")
     df_existente = pd.DataFrame()
+    conn_exitosa = False
 
+# -----------------------------------------------------------------------
 # --- FORMULARIO ---
+# -----------------------------------------------------------------------
+
 with st.form("entry_form", clear_on_submit=True):
     id_paciente = st.text_input("ID Paciente / Historia Clínica")
     
@@ -27,11 +61,9 @@ with st.form("entry_form", clear_on_submit=True):
     st.subheader("Datos Básicos")
     
     # 1. EDAD (V1)
-    # 🚨 SOLUCIÓN: Usamos negrita en la etiqueta de number_input
     edad = st.number_input("**1. Edad** (Puntúa 1 si >65 años)", 18, 110, 75)
 
     # 2. RESIDENCIA (V2)
-    # 🚨 SOLUCIÓN: Usamos negrita en la etiqueta de checkbox
     residencia = st.checkbox("**2. ¿Vive en Residencia/Asilo? (+1 pto)**")
     
     # ----------------------------------------------------
@@ -79,7 +111,7 @@ with st.form("entry_form", clear_on_submit=True):
     ecg = c2.checkbox("**8. ECG Anormal (+1 pto)**")
 
     # ----------------------------------------------------
-    st.subheader("Fragilidad") # 🚨 Error de sintaxis corregido aquí (faltaba paréntesis)
+    st.subheader("Fragilidad") 
 
     # 9. FRAGILIDAD (V9)
     st.write("**9. Fragilidad (Escala FRAIL - 1 pto por ítem positivo):**")
@@ -139,8 +171,8 @@ with st.form("entry_form", clear_on_submit=True):
         # --- MOSTRAR RESULTADOS INMEDIATOS ---
         st.success(f"✅ Paciente **{id_paciente}** guardado correctamente.")
         col_s, col_p = st.columns(2)
-        col_s.metric("Score CriSTAL Total", f"{score_total} puntos")
-        col_p.metric("Mortalidad Est. (30 días)", f"{prob_pct}%")
+        col_s.metric("Score CriSTAL Total", f"**{score_total}** puntos")
+        col_p.metric("Mortalidad Est. (30 días)", f"**{prob_pct}%**")
         
         # --- PREPARAR FILA PARA EXCEL ---
         nuevo_registro = pd.DataFrame([{
@@ -159,11 +191,15 @@ with st.form("entry_form", clear_on_submit=True):
             "V9_Fragilidad_Detalle": v9_val, "V9_Fragilidad_Puntos": v9_pts
         }])
         
-        # --- ENVIAR A GOOGLE SHEETS (CON VERIFICACIÓN) ---
-        if conn is not None:
+        # --- ENVIAR A GOOGLE SHEETS (USANDO GSPREAD) ---
+        if conn_exitosa and ws is not None:
             try:
-                df_actualizado = pd.concat([df_existente, nuevo_registro], ignore_index=True)
-                conn.update(data=df_actualizado, worksheet=SHEET_NAME) 
+                # Convertir el DataFrame de un registro a una lista de listas
+                datos_fila = nuevo_registro.values.tolist()
+                
+                # ws.append_rows añade la nueva fila a la hoja
+                # value_input_option='USER_ENTERED' mantiene el formato de datos (ej. fechas)
+                ws.append_rows(datos_fila, value_input_option='USER_ENTERED')
                 st.toast("Datos guardados en la nube correctamente")
             except Exception as e:
                 st.error(f"Error al guardar en la nube: {e}")
