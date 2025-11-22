@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 
-# --- NUEVAS LIBRERÍAS DE CONEXIÓN ---
+# --- LIBRERÍAS DE CONEXIÓN GSPREAD ---
 import gspread
 from google.oauth2.service_account import Credentials
 # ------------------------------------
@@ -18,9 +18,10 @@ conn_exitosa = False
 
 try:
     # 1. Creación de credenciales
-    service_account_info = st.secrets["gcp_service_account"].copy()
+    # 🚨 CORRECCIÓN: Usamos dict() para crear una copia mutable y evitar el error ".copy()"
+    service_account_info = dict(st.secrets["gcp_service_account"])
     
-    # 🚨 SOLUCIÓN DEFINITIVA PARA EL ERROR 'Invalid private key':
+    # 🚨 SOLUCIÓN para el error 'Invalid private key':
     # Reemplaza los caracteres literales '\n' (que Streamlit inserta mal) 
     # por un salto de línea real, requerido por el formato PEM.
     service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
