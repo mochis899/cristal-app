@@ -14,7 +14,7 @@ conn = None
 # --- CONEXIÓN ---
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-    SHEET_NAME = "Hoja1"
+    SHEET_NAME = "Hoja 1"
     df_existente = conn.read(worksheet=SHEET_NAME) 
 except Exception as e:
     st.error(f"⚠️ No se pudo conectar a Google Sheets. Configure los Secrets correctamente. Los datos no se guardarán en la nube. Error: {e}")
