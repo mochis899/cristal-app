@@ -18,8 +18,12 @@ conn_exitosa = False
 
 try:
     # 1. Creación de credenciales
-    # Se extrae la información completa del JSON del nuevo secrets.toml
-    service_account_info = st.secrets["gcp_service_account"]
+    service_account_info = st.secrets["gcp_service_account"].copy()
+    
+    # 🚨 SOLUCIÓN DEFINITIVA PARA EL ERROR 'Invalid private key':
+    # Reemplaza los caracteres literales '\n' (que Streamlit inserta mal) 
+    # por un salto de línea real, requerido por el formato PEM.
+    service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
     
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
@@ -36,12 +40,12 @@ try:
     
     # 3. Apertura de la hoja y la pestaña
     SPREADSHEET_ID = st.secrets["gcp"]["spreadsheet_id"]
-    WORKSHEET_NAME = st.secrets["gcp"]["worksheet_name"] # Debe ser "Registro"
+    WORKSHEET_NAME = st.secrets["gcp"]["worksheet_name"] # "Registro"
     
     sh = gc.open_by_key(SPREADSHEET_ID)
     ws = sh.worksheet(WORKSHEET_NAME) 
     
-    # 4. Lectura de datos existentes (necesario para la cabecera)
+    # 4. Lectura de datos existentes 
     df_existente = pd.DataFrame(ws.get_all_records()) 
     conn_exitosa = True
     
@@ -194,11 +198,7 @@ with st.form("entry_form", clear_on_submit=True):
         # --- ENVIAR A GOOGLE SHEETS (USANDO GSPREAD) ---
         if conn_exitosa and ws is not None:
             try:
-                # Convertir el DataFrame de un registro a una lista de listas
                 datos_fila = nuevo_registro.values.tolist()
-                
-                # ws.append_rows añade la nueva fila a la hoja
-                # value_input_option='USER_ENTERED' mantiene el formato de datos (ej. fechas)
                 ws.append_rows(datos_fila, value_input_option='USER_ENTERED')
                 st.toast("Datos guardados en la nube correctamente")
             except Exception as e:
