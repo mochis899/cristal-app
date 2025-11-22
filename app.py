@@ -25,7 +25,7 @@ with st.form("entry_form", clear_on_submit=True):
     id_paciente = st.text_input("ID Paciente / Historia Clínica")
     
     # ----------------------------------------------------
-    st.subheader("Datos Básicos (Variables 1 y 2)")
+    st.subheader("Datos Generales")
     
     # 1. EDAD (V1)
     edad = st.number_input("1. Edad (Puntúa 1 si >65 años)", 18, 110, 75)
@@ -34,7 +34,7 @@ with st.form("entry_form", clear_on_submit=True):
     residencia = st.checkbox("2. ¿Vive en Residencia/Asilo? (+1 pto)")
     
     # ----------------------------------------------------
-    st.subheader("Estado Fisiológico / Vitales (Variable 3)")
+    st.subheader("Estado Fisiológico")
     
     # 3. ESTADO FISIOLÓGICO (V3)
     st.write("**3. Alteraciones Fisiológicas (Puntúa 1 si hay ≥2 alteraciones):**")
@@ -49,7 +49,7 @@ with st.form("entry_form", clear_on_submit=True):
     }
     
     # ----------------------------------------------------
-    st.subheader("Comorbilidades Crónicas (Variables 4 a 8)")
+    st.subheader("Comorbilidades Crónicas")
 
     # 4. COMORBILIDADES GRAVES (V4)
     st.write("**4. Patologías Crónicas (1 pto c/u):**")
@@ -70,7 +70,7 @@ with st.form("entry_form", clear_on_submit=True):
     # 5. DETERIORO COGNITIVO (V5)
     cognitivo = c1.checkbox("5. Deterioro Cognitivo (+1 pto)")
     # 6. INGRESO PREVIO (V6)
-    ingreso = c2.checkbox("6. Ingreso Hosp. (último año) (+1 pto)")
+    ingreso = c2.checkbox("**6. Ingreso Hosp. (último año) (+1 pto)**")
     
     # 7. PROTEINURIA (V7)
     proteinuria = c1.checkbox("7. Proteinuria (+1 pto)")
@@ -78,7 +78,7 @@ with st.form("entry_form", clear_on_submit=True):
     ecg = c2.checkbox("8. ECG Anormal (+1 pto)")
 
     # ----------------------------------------------------
-    st.subheader("Fragilidad (Variable 9)")
+    st.subheader("Fragilidad)")
 
     # 9. FRAGILIDAD (V9)
     st.write("**9. Fragilidad (Escala FRAIL - 1 pto por ítem positivo):**")
