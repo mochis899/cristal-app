@@ -17,33 +17,36 @@ try:
     SHEET_NAME = "Hoja1"
     df_existente = conn.read(worksheet=SHEET_NAME) 
 except Exception as e:
-    st.error(f"⚠️ No se pudo conectar a Google Sheets. Configura los Secrets correctamente. Los datos no se guardarán en la nube. Error: {e}")
+    st.error(f"⚠️ No se pudo conectar a Google Sheets. Configure los Secrets correctamente. Los datos no se guardarán en la nube. Error: {e}")
     df_existente = pd.DataFrame()
 
 # --- FORMULARIO ---
 with st.form("entry_form", clear_on_submit=True):
-    st.info("Rellene las variables del Score Modificado (V1 a V9):")
+    st.info("Rellene las 9 variables principales del estudio:")
     
-    st.subheader("Datos del Paciente (V1, V2 y V5-V8)")
+    # ID
+    id_paciente = st.text_input("ID Paciente / Historia Clínica")
     
-    # V1: EDAD
-    col1, col2 = st.columns(2)
-    id_paciente = col1.text_input("ID Paciente / Historia Clínica")
-    edad = col2.number_input("V1. Edad", 18, 110, 75)
+    # 1. EDAD (V1)
+    edad = st.number_input("1. Edad", 18, 110, 75)
 
-    # V2: RESIDENCIA
-    residencia = st.checkbox("V2. ¿Vive en Residencia/Asilo? (+1 pto)")
+    # 2. RESIDENCIA (V2)
+    residencia = st.checkbox("2. ¿Vive en Residencia/Asilo? (+1 pto)")
     
-    # V5, V6, V7, V8 (Nuevas posiciones)
+    # 5. a 8. OTRAS COMORBILIDADES/FACTORES (V5, V6, V7, V8)
     st.markdown("---")
-    st.write("Otras Comorbilidades/Factores (V5 a V8):")
+    st.write("**Otras Comorbilidades/Factores:**")
     c1, c2 = st.columns(2)
     
-    cognitivo = c1.checkbox("V5. Deterioro Cognitivo (+1 pto)")
-    ingreso = c2.checkbox("V6. Ingreso Hosp. (último año) (+1 pto)")
+    # 5. COGNITIVO (V5)
+    cognitivo = c1.checkbox("5. Deterioro Cognitivo (+1 pto)")
+    # 6. INGRESO PREVIO (V6)
+    ingreso = c2.checkbox("6. Ingreso Hosp. (último año) (+1 pto)")
     
-    proteinuria = c1.checkbox("V7. Proteinuria (+1 pto)")
-    ecg = c2.checkbox("V8. ECG Anormal (+1 pto)")
+    # 7. PROTEINURIA (V7)
+    proteinuria = c1.checkbox("7. Proteinuria (+1 pto)")
+    # 8. ECG ANORMAL (V8)
+    ecg = c2.checkbox("8. ECG Anormal (+1 pto)")
 
     # ----------------------------------------------------
     # --- AGRUPACIÓN VISUAL DE LOS COMPONENTES CLÍNICOS ---
@@ -51,7 +54,7 @@ with st.form("entry_form", clear_on_submit=True):
     st.markdown("---")
     
     # 1. ESTADO FISIOLÓGICO (V3)
-    st.subheader("1. Estado Fisiológico (V3)")
+    st.subheader("1. Estado Fisiológico")
     st.write("**Puntúa 1 si hay ≥2 alteraciones:**")
     fisio_opts = {
         "Consciencia (GCS desc >2)": st.checkbox("Consciencia dism. (GCS)"),
@@ -64,7 +67,7 @@ with st.form("entry_form", clear_on_submit=True):
     }
     
     # 2. COMORBILIDADES (V4)
-    st.subheader("2. Comorbilidades Activas (V4)")
+    st.subheader("2. Comorbilidades Activas")
     st.write("**(1 pto c/u):**")
     comorb_opts = {
         "Cáncer Avanzado": st.checkbox("Cáncer Av."),
@@ -77,17 +80,17 @@ with st.form("entry_form", clear_on_submit=True):
     }
 
     # 3. FRAGILIDAD (V9)
-    st.subheader("3. Fragilidad (V9)")
+    st.subheader("3. Fragilidad")
     st.write("**(Escala FRAIL - 1 pto por ítem positivo):**")
-    frag_list = st.multiselect("Seleccione ítems positivos:", 
+    frag_list = st.multiselect("9. Seleccione ítems positivos:", 
         ["Fatiga", "Resistencia (Escaleras)", "Deambulación", "Enfermedades >5", "Pérdida Peso >5%"])
 
-    # --- BOTÓN Y LÓGICA (NO MODIFICADA) ---
+    # --- BOTÓN Y LÓGICA (La lógica interna V1 a V9 sigue inalterada) ---
     submitted = st.form_submit_button("💾 Guardar Datos Detallados")
 
     if submitted and id_paciente:
         
-        # --- CÁLCULO DE PUNTOS Y VALORES (Texto y Puntos para V1 a V9) ---
+        # --- CÁLCULO DE PUNTOS Y VALORES (V1 a V9) ---
         
         # V1: Edad
         v1_val = edad
@@ -124,7 +127,7 @@ with st.form("entry_form", clear_on_submit=True):
         v9_val = ", ".join(frag_list) if frag_list else "No Frágil"
         v9_pts = len(frag_list)
 
-        # --- SCORE TOTAL Y PROBABILIDAD (NO MODIFICADA) ---
+        # --- SCORE TOTAL Y PROBABILIDAD ---
         score_total = v1_pts + v2_pts + v3_pts + v4_pts + v5_pts + v6_pts + v7_pts + v8_pts + v9_pts
         
         # Fórmula Logística Tesis
