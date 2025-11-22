@@ -25,16 +25,18 @@ with st.form("entry_form", clear_on_submit=True):
     id_paciente = st.text_input("ID Paciente / Historia Clínica")
     
     # ----------------------------------------------------
-    st.subheader("Datos Generales")
+    st.subheader("Datos Básicos (1 y 2)")
     
     # 1. EDAD (V1)
-    edad = st.number_input("1. Edad (Puntúa 1 si >65 años)", 18, 110, 75)
+    # 🚨 SOLUCIÓN: Usamos negrita en la etiqueta de number_input
+    edad = st.number_input("**1. Edad** (Puntúa 1 si >65 años)", 18, 110, 75)
 
     # 2. RESIDENCIA (V2)
-    residencia = st.checkbox("2. ¿Vive en Residencia/Asilo? (+1 pto)")
+    # 🚨 SOLUCIÓN: Usamos negrita en la etiqueta de checkbox
+    residencia = st.checkbox("**2. ¿Vive en Residencia/Asilo? (+1 pto)**")
     
     # ----------------------------------------------------
-    st.subheader("Estado Fisiológico")
+    st.subheader("Estado Fisiológico (Variable 3)")
     
     # 3. ESTADO FISIOLÓGICO (V3)
     st.write("**3. Alteraciones Fisiológicas (Puntúa 1 si hay ≥2 alteraciones):**")
@@ -49,7 +51,7 @@ with st.form("entry_form", clear_on_submit=True):
     }
     
     # ----------------------------------------------------
-    st.subheader("Comorbilidades Crónicas")
+    st.subheader("Comorbilidades Crónicas (Variables 4 a 8)")
 
     # 4. COMORBILIDADES GRAVES (V4)
     st.write("**4. Patologías Crónicas (1 pto c/u):**")
@@ -68,17 +70,17 @@ with st.form("entry_form", clear_on_submit=True):
     c1, c2 = st.columns(2)
     
     # 5. DETERIORO COGNITIVO (V5)
-    cognitivo = c1.checkbox("5. Deterioro Cognitivo (+1 pto)")
+    cognitivo = c1.checkbox("**5. Deterioro Cognitivo (+1 pto)**")
     # 6. INGRESO PREVIO (V6)
-    ingreso = c2.checkbox("6. Ingreso Hosp. (último año) (+1 pto)")
+    ingreso = c2.checkbox("**6. Ingreso Hosp. (último año) (+1 pto)**")
     
     # 7. PROTEINURIA (V7)
-    proteinuria = c1.checkbox("7. Proteinuria (+1 pto)")
+    proteinuria = c1.checkbox("**7. Proteinuria (+1 pto)**")
     # 8. ECG ANORMAL (V8)
-    ecg = c2.checkbox("8. ECG Anormal (+1 pto)")
+    ecg = c2.checkbox("**8. ECG Anormal (+1 pto)**")
 
     # ----------------------------------------------------
-    st.subheader("Fragilidad)")
+    st.subheader("Fragilidad (Variable 9)") # 🚨 Error de sintaxis corregido aquí (faltaba paréntesis)
 
     # 9. FRAGILIDAD (V9)
     st.write("**9. Fragilidad (Escala FRAIL - 1 pto por ítem positivo):**")
@@ -90,7 +92,7 @@ with st.form("entry_form", clear_on_submit=True):
 
     if submitted and id_paciente:
         
-        # --- CÁLCULO DE PUNTOS Y VALORES (La lógica V1 a V9 sigue inalterada) ---
+        # --- CÁLCULO DE PUNTOS Y VALORES (V1 a V9) ---
         
         # V1: Edad
         v1_val = edad
