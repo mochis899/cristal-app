@@ -70,7 +70,7 @@ with st.form("entry_form", clear_on_submit=True):
     # 5. DETERIORO COGNITIVO (V5)
     cognitivo = c1.checkbox("5. Deterioro Cognitivo (+1 pto)")
     # 6. INGRESO PREVIO (V6)
-    ingreso = c2.checkbox("*6. Ingreso Hosp. (último año) (+1 pto)*")
+    ingreso = c2.checkbox("6. Ingreso Hosp. (último año) (+1 pto)")
     
     # 7. PROTEINURIA (V7)
     proteinuria = c1.checkbox("7. Proteinuria (+1 pto)")
