@@ -8,7 +8,7 @@ st.set_page_config(page_title="CriSTAL Detallado", page_icon="📊", layout="cen
 st.title("📊 Registro CriSTAL Detallado")
 st.markdown("Herramienta para la validación externa del CriSTAL Score Modificado.")
 
-# --- INICIALIZACIÓN DE LA CONEXIÓN (IMPORTANTE) ---
+# --- INICIALIZACIÓN DE LA CONEXIÓN ---
 conn = None 
 
 # --- CONEXIÓN ---
@@ -22,19 +22,37 @@ except Exception as e:
 
 # --- FORMULARIO ---
 with st.form("entry_form", clear_on_submit=True):
-    st.info("Rellene las 9 variables principales del estudio:")
+    st.info("Rellene las variables del Score Modificado (V1 a V9):")
     
-    # 1. EDAD
+    st.subheader("Datos del Paciente (V1, V2 y V5-V8)")
+    
+    # V1: EDAD
     col1, col2 = st.columns(2)
     id_paciente = col1.text_input("ID Paciente / Historia Clínica")
-    edad = col2.number_input("1. Edad", 18, 110, 75)
+    edad = col2.number_input("V1. Edad", 18, 110, 75)
 
-    # 2. RESIDENCIA
-    residencia = st.checkbox("2. ¿Vive en Residencia/Asilo? (+1 pto)")
+    # V2: RESIDENCIA
+    residencia = st.checkbox("V2. ¿Vive en Residencia/Asilo? (+1 pto)")
     
-    # 3. ESTADO FISIOLÓGICO (Requiere >=2 para puntuar 1)
+    # V5, V6, V7, V8 (Nuevas posiciones)
     st.markdown("---")
-    st.write("**3. Estado Fisiológico (Puntúa 1 si hay ≥2 alteraciones):**")
+    st.write("Otras Comorbilidades/Factores (V5 a V8):")
+    c1, c2 = st.columns(2)
+    
+    cognitivo = c1.checkbox("V5. Deterioro Cognitivo (+1 pto)")
+    ingreso = c2.checkbox("V6. Ingreso Hosp. (último año) (+1 pto)")
+    
+    proteinuria = c1.checkbox("V7. Proteinuria (+1 pto)")
+    ecg = c2.checkbox("V8. ECG Anormal (+1 pto)")
+
+    # ----------------------------------------------------
+    # --- AGRUPACIÓN VISUAL DE LOS COMPONENTES CLÍNICOS ---
+    # ----------------------------------------------------
+    st.markdown("---")
+    
+    # 1. ESTADO FISIOLÓGICO (V3)
+    st.subheader("1. Estado Fisiológico (V3)")
+    st.write("**Puntúa 1 si hay ≥2 alteraciones:**")
     fisio_opts = {
         "Consciencia (GCS desc >2)": st.checkbox("Consciencia dism. (GCS)"),
         "TAS < 90 mmHg": st.checkbox("TAS < 90"),
@@ -45,8 +63,9 @@ with st.form("entry_form", clear_on_submit=True):
         "Oliguria (<15ml/h)": st.checkbox("Oliguria")
     }
     
-    # 4. COMORBILIDADES (1 punto por cada una)
-    st.write("**4. Comorbilidades Activas (1 pto c/u):**")
+    # 2. COMORBILIDADES (V4)
+    st.subheader("2. Comorbilidades Activas (V4)")
+    st.write("**(1 pto c/u):**")
     comorb_opts = {
         "Cáncer Avanzado": st.checkbox("Cáncer Av."),
         "IRC": st.checkbox("Insuf. Renal Crón."),
@@ -57,28 +76,18 @@ with st.form("entry_form", clear_on_submit=True):
         "Hepatopatía": st.checkbox("Hepatopatía Mod/Sev")
     }
 
-    # 5. COGNITIVO, 6. INGRESO PREVIO, 7. PROTEINURIA, 8. ECG ANORMAL
-    st.markdown("---")
-    c1, c2 = st.columns(2)
-    
-    cognitivo = c1.checkbox("5. Deterioro Cognitivo (+1 pto)")
-    ingreso = c2.checkbox("6. Ingreso Hosp. (último año) (+1 pto)")
-    
-    proteinuria = c1.checkbox("7. Proteinuria (+1 pto)")
-    ecg = c2.checkbox("8. ECG Anormal (+1 pto)")
-
-    # 9. FRAGILIDAD (Suma directa de items)
-    st.markdown("---")
-    st.write("**9. Fragilidad (Escala FRAIL - 1 pto por ítem positivo):**")
+    # 3. FRAGILIDAD (V9)
+    st.subheader("3. Fragilidad (V9)")
+    st.write("**(Escala FRAIL - 1 pto por ítem positivo):**")
     frag_list = st.multiselect("Seleccione ítems positivos:", 
         ["Fatiga", "Resistencia (Escaleras)", "Deambulación", "Enfermedades >5", "Pérdida Peso >5%"])
 
-    # --- BOTÓN Y LÓGICA ---
+    # --- BOTÓN Y LÓGICA (NO MODIFICADA) ---
     submitted = st.form_submit_button("💾 Guardar Datos Detallados")
 
     if submitted and id_paciente:
         
-        # --- CÁLCULO DE PUNTOS Y VALORES (TEXTO) ---
+        # --- CÁLCULO DE PUNTOS Y VALORES (Texto y Puntos para V1 a V9) ---
         
         # V1: Edad
         v1_val = edad
@@ -115,7 +124,7 @@ with st.form("entry_form", clear_on_submit=True):
         v9_val = ", ".join(frag_list) if frag_list else "No Frágil"
         v9_pts = len(frag_list)
 
-        # --- SCORE TOTAL Y PROBABILIDAD ---
+        # --- SCORE TOTAL Y PROBABILIDAD (NO MODIFICADA) ---
         score_total = v1_pts + v2_pts + v3_pts + v4_pts + v5_pts + v6_pts + v7_pts + v8_pts + v9_pts
         
         # Fórmula Logística Tesis
@@ -126,8 +135,8 @@ with st.form("entry_form", clear_on_submit=True):
         # --- MOSTRAR RESULTADOS INMEDIATOS ---
         st.success(f"✅ Paciente **{id_paciente}** guardado correctamente.")
         col_s, col_p = st.columns(2)
-        col_s.metric("Score CriSTAL Total", f"{score_total} puntos")
-        col_p.metric("Mortalidad Est. (30 días)", f"{prob_pct}%")
+        col_s.metric("Score CriSTAL Total", f"**{score_total}** puntos")
+        col_p.metric("Mortalidad Est. (30 días)", f"**{prob_pct}%**")
         
         # --- PREPARAR FILA PARA EXCEL ---
         nuevo_registro = pd.DataFrame([{
