@@ -25,7 +25,7 @@ with st.form("entry_form", clear_on_submit=True):
     id_paciente = st.text_input("ID Paciente / Historia Clínica")
     
     # ----------------------------------------------------
-    st.subheader("Datos Básicos)")
+    st.subheader("Datos Básicos")
     
     # 1. EDAD (V1)
     # 🚨 SOLUCIÓN: Usamos negrita en la etiqueta de number_input
@@ -36,7 +36,7 @@ with st.form("entry_form", clear_on_submit=True):
     residencia = st.checkbox("**2. ¿Vive en Residencia/Asilo? (+1 pto)**")
     
     # ----------------------------------------------------
-    st.subheader("Estado Fisiológico)")
+    st.subheader("Estado Fisiológico")
     
     # 3. ESTADO FISIOLÓGICO (V3)
     st.write("**3. Alteraciones Fisiológicas (Puntúa 1 si hay ≥2 alteraciones):**")
