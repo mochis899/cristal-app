@@ -4,9 +4,9 @@ import numpy as np
 from datetime import datetime
 from streamlit_gsheets import GSheetsConnection
 
-st.set_page_config(page_title="CriSTAL Detallado", page_icon="📊", layout="centered")
+st.set_page_config(page_title="CriSTAL Secuencial", page_icon="🔢", layout="centered")
 st.title("📊 Registro CriSTAL Detallado")
-st.markdown("Herramienta para la validación externa del CriSTAL Score Modificado.")
+st.markdown("Variables del Score Modificado, ordenadas del 1 al 9.")
 
 # --- INICIALIZACIÓN DE LA CONEXIÓN ---
 conn = None 
@@ -22,40 +22,22 @@ except Exception as e:
 
 # --- FORMULARIO ---
 with st.form("entry_form", clear_on_submit=True):
-    st.info("Rellene las 9 variables principales del estudio:")
-    
-    # ID
     id_paciente = st.text_input("ID Paciente / Historia Clínica")
     
+    # ----------------------------------------------------
+    st.subheader("Datos Básicos (Variables 1 y 2)")
+    
     # 1. EDAD (V1)
-    edad = st.number_input("1. Edad", 18, 110, 75)
+    edad = st.number_input("1. Edad (Puntúa 1 si >65 años)", 18, 110, 75)
 
     # 2. RESIDENCIA (V2)
     residencia = st.checkbox("2. ¿Vive en Residencia/Asilo? (+1 pto)")
     
-    # 5. a 8. OTRAS COMORBILIDADES/FACTORES (V5, V6, V7, V8)
-    st.markdown("---")
-    st.write("**Otras Comorbilidades/Factores:**")
-    c1, c2 = st.columns(2)
-    
-    # 5. COGNITIVO (V5)
-    cognitivo = c1.checkbox("5. Deterioro Cognitivo (+1 pto)")
-    # 6. INGRESO PREVIO (V6)
-    ingreso = c2.checkbox("6. Ingreso Hosp. (último año) (+1 pto)")
-    
-    # 7. PROTEINURIA (V7)
-    proteinuria = c1.checkbox("7. Proteinuria (+1 pto)")
-    # 8. ECG ANORMAL (V8)
-    ecg = c2.checkbox("8. ECG Anormal (+1 pto)")
-
     # ----------------------------------------------------
-    # --- AGRUPACIÓN VISUAL DE LOS COMPONENTES CLÍNICOS ---
-    # ----------------------------------------------------
-    st.markdown("---")
+    st.subheader("Estado Fisiológico / Vitales (Variable 3)")
     
-    # 1. ESTADO FISIOLÓGICO (V3)
-    st.subheader("1. Estado Fisiológico")
-    st.write("**Puntúa 1 si hay ≥2 alteraciones:**")
+    # 3. ESTADO FISIOLÓGICO (V3)
+    st.write("**3. Alteraciones Fisiológicas (Puntúa 1 si hay ≥2 alteraciones):**")
     fisio_opts = {
         "Consciencia (GCS desc >2)": st.checkbox("Consciencia dism. (GCS)"),
         "TAS < 90 mmHg": st.checkbox("TAS < 90"),
@@ -66,9 +48,11 @@ with st.form("entry_form", clear_on_submit=True):
         "Oliguria (<15ml/h)": st.checkbox("Oliguria")
     }
     
-    # 2. COMORBILIDADES (V4)
-    st.subheader("2. Comorbilidades Activas")
-    st.write("**(1 pto c/u):**")
+    # ----------------------------------------------------
+    st.subheader("Comorbilidades Crónicas (Variables 4 a 8)")
+
+    # 4. COMORBILIDADES GRAVES (V4)
+    st.write("**4. Patologías Crónicas (1 pto c/u):**")
     comorb_opts = {
         "Cáncer Avanzado": st.checkbox("Cáncer Av."),
         "IRC": st.checkbox("Insuf. Renal Crón."),
@@ -78,19 +62,35 @@ with st.form("entry_form", clear_on_submit=True):
         "IAM Reciente": st.checkbox("IAM Reciente"),
         "Hepatopatía": st.checkbox("Hepatopatía Mod/Sev")
     }
+    
+    st.markdown("---")
+    st.write("**Otras Comorbilidades/Factores:**")
+    c1, c2 = st.columns(2)
+    
+    # 5. DETERIORO COGNITIVO (V5)
+    cognitivo = c1.checkbox("5. Deterioro Cognitivo (+1 pto)")
+    # 6. INGRESO PREVIO (V6)
+    ingreso = c2.checkbox("6. Ingreso Hosp. (último año) (+1 pto)")
+    
+    # 7. PROTEINURIA (V7)
+    proteinuria = c1.checkbox("7. Proteinuria (+1 pto)")
+    # 8. ECG ANORMAL (V8)
+    ecg = c2.checkbox("8. ECG Anormal (+1 pto)")
 
-    # 3. FRAGILIDAD (V9)
-    st.subheader("3. Fragilidad")
-    st.write("**(Escala FRAIL - 1 pto por ítem positivo):**")
-    frag_list = st.multiselect("9. Seleccione ítems positivos:", 
+    # ----------------------------------------------------
+    st.subheader("Fragilidad (Variable 9)")
+
+    # 9. FRAGILIDAD (V9)
+    st.write("**9. Fragilidad (Escala FRAIL - 1 pto por ítem positivo):**")
+    frag_list = st.multiselect("Seleccione ítems positivos:", 
         ["Fatiga", "Resistencia (Escaleras)", "Deambulación", "Enfermedades >5", "Pérdida Peso >5%"])
 
-    # --- BOTÓN Y LÓGICA (La lógica interna V1 a V9 sigue inalterada) ---
+    # --- BOTÓN Y LÓGICA ---
     submitted = st.form_submit_button("💾 Guardar Datos Detallados")
 
     if submitted and id_paciente:
         
-        # --- CÁLCULO DE PUNTOS Y VALORES (V1 a V9) ---
+        # --- CÁLCULO DE PUNTOS Y VALORES (La lógica V1 a V9 sigue inalterada) ---
         
         # V1: Edad
         v1_val = edad
