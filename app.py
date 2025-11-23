@@ -11,8 +11,8 @@ from google.oauth2.service_account import Credentials
 # ------------------------------------
 
 st.set_page_config(page_title="CriSTAL Secuencial", page_icon="🔢", layout="centered")
-st.title("📊 Registro CriSTAL Score Modificado")
-
+st.title("📊 Registro CriSTAL Detallado")
+st.markdown("Variables del Score Modificado, ordenadas del 1 al 9.")
 
 # --- INICIALIZACIÓN DE LA CONEXIÓN CON GSPREAD (CON BASE64) ---
 ws = None
@@ -22,8 +22,8 @@ try:
     # 1. Obtener la cadena Base64 del secrets
     base64_string = st.secrets["gcp"]["service_account_base64"]
     
-    # 2. Decodificar la cadena Base64 a bytes y luego a JSON (diccionario de Python)
-    # 🚨 ESTE ES EL PASO CRÍTICO QUE BYPASSEA EL ERROR DE FORMATO TOML
+    # 2. Decodificar la cadena Base64 a JSON (diccionario de Python)
+    # Esto soluciona los errores de formato TOML en la clave privada.
     json_service_account = base64.b64decode(base64_string).decode('utf-8')
     service_account_info = json.loads(json_service_account)
     
@@ -52,17 +52,18 @@ try:
     conn_exitosa = True
     
 except Exception as e:
-    # En caso de error, muestra el error de conexión
     st.error(f"⚠️ No se pudo conectar a Google Sheets. Los datos no se guardarán. Error: {e}")
     df_existente = pd.DataFrame()
     conn_exitosa = False
 
 # -----------------------------------------------------------------------
-# --- FORMULARIO (Se mantiene igual que antes) ---
+# --- FORMULARIO ---
 # -----------------------------------------------------------------------
 
 with st.form("entry_form", clear_on_submit=True):
     id_paciente = st.text_input("ID Paciente / Historia Clínica")
+    
+    # ... [El resto del formulario (V1 a V9) se mantiene igual] ...
     
     # ----------------------------------------------------
     st.subheader("Datos Básicos")
@@ -130,63 +131,55 @@ with st.form("entry_form", clear_on_submit=True):
 
     if submitted and id_paciente:
         
+        # ... [Cálculo de V1_pts a V9_pts y score_total se mantiene igual] ...
+        
         # --- CÁLCULO DE PUNTOS Y VALORES (V1 a V9) ---
-        
-        # V1: Edad
-        v1_val = edad
-        v1_pts = 1 if edad > 65 else 0
-        
-        # V2: Residencia
-        v2_val = "Sí" if residencia else "No"
-        v2_pts = 1 if residencia else 0
-        
-        # V3: Fisiológico (Lógica especial: >=2 items = 1 punto, sino 0)
+        v1_val = edad; v1_pts = 1 if edad > 65 else 0
+        v2_val = "Sí" if residencia else "No"; v2_pts = 1 if residencia else 0
         fisio_activas = [k for k, v in fisio_opts.items() if v]
-        v3_val = ", ".join(fisio_activas) if fisio_activas else "Ninguna"
-        v3_pts = 1 if len(fisio_activas) >= 2 else 0
-        
-        # V4: Comorbilidades (Suma directa)
+        v3_val = ", ".join(fisio_activas) if fisio_activas else "Ninguna"; v3_pts = 1 if len(fisio_activas) >= 2 else 0
         comorb_activas = [k for k, v in comorb_opts.items() if v]
-        v4_val = ", ".join(comorb_activas) if comorb_activas else "Ninguna"
-        v4_pts = len(comorb_activas)
+        v4_val = ", ".join(comorb_activas) if comorb_activas else "Ninguna"; v4_pts = len(comorb_activas)
+        v5_val = "Sí" if cognitivo else "No"; v5_pts = 1 if cognitivo else 0
+        v6_val = "Sí" if ingreso else "No"; v6_pts = 1 if ingreso else 0
+        v7_val = "Sí" if proteinuria else "No"; v7_pts = 1 if proteinuria else 0
+        v8_val = "Sí" if ecg else "No"; v8_pts = 1 if ecg else 0
+        v9_val = ", ".join(frag_list) if frag_list else "No Frágil"; v9_pts = len(frag_list)
         
-        # V5, V6, V7, V8 (Simples)
-        v5_val = "Sí" if cognitivo else "No"
-        v5_pts = 1 if cognitivo else 0
-        
-        v6_val = "Sí" if ingreso else "No"
-        v6_pts = 1 if ingreso else 0
-        
-        v7_val = "Sí" if proteinuria else "No"
-        v7_pts = 1 if proteinuria else 0
-        
-        v8_val = "Sí" if ecg else "No"
-        v8_pts = 1 if ecg else 0
-        
-        # V9: Fragilidad
-        v9_val = ", ".join(frag_list) if frag_list else "No Frágil"
-        v9_pts = len(frag_list)
-
-        # --- SCORE TOTAL Y PROBABILIDAD ---
         score_total = v1_pts + v2_pts + v3_pts + v4_pts + v5_pts + v6_pts + v7_pts + v8_pts + v9_pts
         
-        # Fórmula Logística Tesis
+        # --- CÁLCULOS DE PROBABILIDAD (DOBLE) ---
+        
+        # 1. Logit (común a ambos): L = -3.844 + (0.285 * Score Total)
         logit = -3.844 + (0.285 * score_total)
-        prob = 1 / (1 + np.exp(-logit))
-        prob_pct = round(prob * 100, 2)
+        
+        # 2. Probabilidad Matemática / Esperada (Función Logística Estándar)
+        # P_Mat = 1 / (1 + e^(-Logit))
+        prob_math = 1 / (1 + np.exp(-logit))
+        prob_math_pct = round(prob_math * 100, 2)
+        
+        # 3. Probabilidad Tesis Literal (Interpretación directa de la expresión citada)
+        # P_Tesis = e^(Score) / (1 + e^(Logit))
+        # Nota: Esta fórmula puede resultar en una probabilidad mayor al 100% o muy alta para scores altos,
+        # lo que subraya el posible error tipográfico en la fuente original.
+        prob_thesis = np.exp(score_total) / (1 + np.exp(logit))
+        prob_thesis_pct = round(prob_thesis * 100, 2)
         
         # --- MOSTRAR RESULTADOS INMEDIATOS ---
         st.success(f"✅ Paciente **{id_paciente}** guardado correctamente.")
-        col_s, col_p = st.columns(2)
-        col_s.metric("Score CriSTAL Total", f"{score_total} puntos")
-        col_p.metric("Mortalidad Est. (30 días)", f"{prob_pct}%")
+        
+        col_s, col_pm, col_pt = st.columns(3)
+        col_s.metric("Score CriSTAL Total", f"**{score_total}** puntos")
+        col_pm.metric("Mortalidad (Fórmula Matemática)", f"**{prob_math_pct}%**")
+        col_pt.metric("Mortalidad (Fórmula Tesis Literal)", f"**{prob_thesis_pct}%**")
         
         # --- PREPARAR FILA PARA EXCEL ---
         nuevo_registro = pd.DataFrame([{
             "Fecha": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "ID": id_paciente,
             "Score_Total": score_total,
-            "Prob_Mortalidad_%": prob_pct,
+            "Prob_Mortalidad_Mat_%": prob_math_pct, # Nueva columna
+            "Prob_Mortalidad_Tesis_%": prob_thesis_pct, # Nueva columna
             "V1_Edad_Valor": v1_val, "V1_Edad_Puntos": v1_pts,
             "V2_Residencia_Valor": v2_val, "V2_Residencia_Puntos": v2_pts,
             "V3_Fisiologico_Detalle": v3_val, "V3_Fisiologico_Puntos": v3_pts,
