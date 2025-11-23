@@ -1,8 +1,10 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import calcular_probabilidad_math, obtener_color_riesgo
 import pandas as pd
+# Importamos la herramienta para mapear números a colores específicos en Matplotlib
+from matplotlib.colors import ListedColormap 
+from utils import calcular_probabilidad_math, obtener_color_riesgo
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Decisión Compartida CriSTAL", page_icon="🤝", layout="wide")
@@ -14,6 +16,7 @@ st.markdown("Traduce la probabilidad numérica en visualizaciones claras para fa
 col_input, col_info = st.columns([1, 2])
 
 with col_input:
+    # Usamos el mismo valor por defecto que el simulador
     score_paciente = st.number_input(
         "Introduzca el Score CriSTAL Total del paciente:", 
         min_value=0, 
@@ -27,7 +30,7 @@ prob_mortalidad = calcular_probabilidad_math(score_paciente)
 prob_supervivencia = 100 - prob_mortalidad
 color_final = obtener_color_riesgo(score_paciente)
 
-# Redondeo para gráficos de 10 o 100 personas
+# Redondeo para el pictograma de 100 personas
 n_total = 100
 n_muerte = round(prob_mortalidad * (n_total / 100))
 n_supervivencia = n_total - n_muerte
@@ -79,24 +82,34 @@ with col_pie:
 with col_waffle:
     st.markdown("#### 2. Pictograma (100 Personas)")
     
-    # Crear el array de colores para la matriz 10x10
-    colores_waffle = [obtener_color_riesgo(20)] * n_muerte + ['#2ecc71'] * n_supervivencia
+    # 1. Crear el array de CATEGORÍAS (0 para supervivencia, 1 para riesgo)
+    categoria_riesgo = 1
+    categoria_supervivencia = 0
     
-    # Si no hay riesgo, asegurarse de que haya 100 puntos verdes
-    if score_paciente == 0:
-        colores_waffle = ['#2ecc71'] * 100
-
+    # Llenar la lista con las categorías numéricas
+    categorias_waffle = [categoria_riesgo] * n_muerte + [categoria_supervivencia] * n_supervivencia
+    
     # Asegurarse de que la lista tiene 100 elementos
-    colores_waffle = colores_waffle[:100]
-    np.random.shuffle(colores_waffle) # Barajar para que no sean bloques perfectos
+    categorias_waffle = categorias_waffle[:100]
+    
+    # Barajar para que no sean bloques perfectos
+    np.random.shuffle(categorias_waffle)
 
-    # Convertir a matriz 10x10 para visualización
-    matriz = np.array(colores_waffle).reshape((10, 10))
+    # Convertir a matriz 10x10 para la visualización
+    matriz_numerica = np.array(categorias_waffle).reshape((10, 10))
+    
+    # 2. DEFINIR EL MAPA DE COLORES (El arreglo que faltaba)
+    cmap_colors = [
+        '#2ecc71',   # Categoría 0: Supervivencia (Verde)
+        color_final  # Categoría 1: Mortalidad (Color de riesgo específico)
+    ]
+    # Crear el colormap usando la lista de colores
+    cmap = ListedColormap(cmap_colors)
     
     fig_waffle, ax_waffle = plt.subplots(figsize=(7, 7))
     
-    # Mostrar la imagen
-    ax_waffle.imshow(matriz, aspect='auto') 
+    # 3. Mostrar la imagen usando la matriz numérica y el colormap
+    ax_waffle.imshow(matriz_numerica, cmap=cmap, aspect='auto') 
     
     # Dibujar las celdas (cuadrados)
     for i in range(10):
