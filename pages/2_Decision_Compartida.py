@@ -37,6 +37,9 @@ prob_mortalidad = calcular_probabilidad_math(score_paciente)
 prob_supervivencia = 100 - prob_mortalidad
 color_final = obtener_color_riesgo(score_paciente)
 
+# Color fijo para la supervivencia (Azul Neutro)
+COLOR_SUPERVIVENCIA = '#3498db'
+
 # Redondeo para gráficos de 100 personas
 n_total = 100
 n_muerte = int(round(prob_mortalidad * (n_total / 100)))
@@ -56,7 +59,7 @@ with col_info:
         unsafe_allow_html=True
     )
 
-# --- GRÁFICOS (Resto del código sin cambios funcionales) ---
+# --- GRÁFICOS ---
 st.markdown("---")
 st.subheader("Representación del Riesgo")
 
@@ -70,7 +73,8 @@ with col_pie:
     
     sizes = [prob_supervivencia, prob_mortalidad]
     labels = [f'Supervivencia ({prob_supervivencia:.1f}%)', f'Mortalidad ({prob_mortalidad:.1f}%)']
-    colors = ['#2ecc71', color_final] 
+    # AQUI ESTÁ EL CAMBIO CLAVE: Usamos COLOR_SUPERVIVENCIA para Supervivencia
+    colors = [COLOR_SUPERVIVENCIA, color_final] 
     explode = (0, 0.1) 
     
     ax_pie.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', startangle=90,
@@ -101,8 +105,8 @@ with col_waffle:
     
     # 2. DEFINIR EL MAPA DE COLORES 
     cmap_colors = [
-        '#2ecc71',   # Categoría 0: Supervivencia (Verde)
-        color_final  # Categoría 1: Mortalidad (Color de riesgo específico)
+        COLOR_SUPERVIVENCIA, # Categoría 0: Supervivencia (Azul)
+        color_final          # Categoría 1: Mortalidad (Color de riesgo específico)
     ]
     cmap = ListedColormap(cmap_colors)
     
