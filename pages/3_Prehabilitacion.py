@@ -6,56 +6,29 @@ import numpy as np
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(page_title="Plan de Prehabilitación", page_icon="💪", layout="wide")
 
-st.title("💪 Plan de Prehabilitación y Optimización")
-st.markdown("Esta herramienta ofrece recomendaciones de optimización preoperatoria basadas en las áreas de riesgo del paciente. Ideal para pacientes con Score CriSTAL > 8.")
+st.title("💪 Plan de Prehabilitación y Optimización Específico")
+st.markdown("Recomendaciones basadas en los factores de riesgo marcados en la Calculadora CriSTAL.")
 
-# --- ENTRADA DE DATOS SIMPLIFICADA (Para fines de demostración) ---
-st.subheader("1. Evaluación Rápida de Puntos de Riesgo")
-st.warning("⚠️ Nota: Esta página usa datos introducidos aquí y NO los guarda en la BBDD.")
+# --- CONEXIÓN DE SESIÓN Y CÁLCULOS ---
+score_final = st.session_state.get('current_score')
+factores = st.session_state.get('current_factors', {})
 
-# Usamos un expander para mantener el diseño limpio
-with st.expander("Seleccionar los Factores de Riesgo Activos del Paciente", expanded=True):
+# Fallback si no hay score en la sesión
+if score_final is None:
+    st.error("⚠️ **ERROR:** No se ha calculado el Score CriSTAL. Por favor, ve a la página 'Calculadora CriSTAL' primero.")
+    score_final = 0 # Usar 0 para evitar errores de cálculo
     
-    col_v1_v3, col_v4, col_v9 = st.columns(3)
-    
-    # V1/V2/V3 - Fisiológico
-    with col_v1_v3:
-        st.markdown("#### Fisiológico y Edad")
-        p_edad = st.checkbox("Edad > 65 años (+1)", key="p_edad")
-        p_residencia = st.checkbox("Residencia/Asilo (+1)", key="p_residencia")
-        p_fisiologico = st.checkbox("≥2 Alteraciones Fisiológicas (+1)", key="p_fisiologico")
-        p_otros = st.checkbox("ECG Anormal, Proteinuria, etc. (+1 a +3)", key="p_otros")
-        
-    # V4 - Comorbilidades
-    with col_v4:
-        st.markdown("#### Comorbilidades (V4)")
-        p_comorb = st.multiselect(
-            "Selecciona Comorbilidades Activas (1 pto c/u)", 
-            ["Cáncer Av.", "IRC", "ICC", "EPOC", "ACV Reciente", "IAM Reciente", "Hepatopatía"]
-        )
-        
-    # V9 - Fragilidad
-    with col_v9:
-        st.markdown("#### Fragilidad (V9)")
-        p_fragilidad = st.multiselect(
-            "Selecciona Síntomas de Fragilidad (1 pto c/u)", 
-            ["Fatiga", "Resistencia (Escaleras)", "Deambulación", "Enfermedades >5", "Pérdida Peso >5%"]
-        )
-
-# --- CÁLCULO DEL SCORE ---
-score_total = (
-    (1 if p_edad else 0) +
-    (1 if p_residencia else 0) +
-    (1 if p_fisiologico else 0) +
-    (1 if p_otros else 0) +
-    len(p_comorb) +
-    len(p_fragilidad)
-)
-
-score_final = min(score_total, 20)
 color_final = obtener_color_riesgo(score_final)
 
-st.markdown("---")
+# Extraer factores relevantes para el plan
+p_edad = factores.get('p_edad', 0) > 0
+p_residencia = factores.get('p_residencia', False)
+p_fisiologico = factores.get('p_fisiologico', 0) > 0
+p_cognitivo = factores.get('p_cognitivo', False)
+p_comorb = factores.get('p_comorb', 0) > 0
+comorb_detalles = factores.get('comorb_detalles', [])
+p_fragilidad = factores.get('p_fragilidad', 0) > 0
+frag_detalles = factores.get('frag_detalles', [])
 
 # --- RESUMEN Y PLAN ---
 
@@ -67,9 +40,10 @@ with col_resumen:
     st.markdown(
         f"""
         <div style="background-color:{color_final}15; border: 2px solid {color_final}; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 20px;">
-            <p style="color: {color_final}; margin:0; font-size: 1.1em; font-weight:bold;">SCORE TOTAL</p>
+            <p style="color: {color_final}; margin:0; font-size: 1.1em; font-weight:bold;">SCORE TOTAL OBTENIDO</p>
             <h1 style="color: {color_final}; margin: 5px 0 10px 0; font-size: 3em;">{score_final}</h1>
         </div>
+        <p style='text-align:center;'>*Datos obtenidos de la Calculadora CriSTAL*</p>
         """, 
         unsafe_allow_html=True
     )
@@ -85,57 +59,60 @@ with col_resumen:
 with col_plan:
     st.markdown("#### 2. Plan de Optimización Específico")
     
+    plan_generado = False
+    
     # 1. Optimización Fisiológica Aguda (V3)
     if p_fisiologico:
-        st.header("1️⃣ Fisiología Aguda (V3)")
+        st.header("1️⃣ Estabilización Fisiológica (V3)")
         st.error("🚨 **¡NO OPERAR!** Tratar estas alteraciones antes de cualquier cirugía electiva.")
         st.write("""
         * **Objetivo:** Estabilizar TA, FR, Pulso y Saturación. Corregir hipoglucemia y trastornos de conciencia.
-        * **Acción:** Monitorización intensiva, reanimación de fluidos si necesario, ajuste de medicación cardiológica o respiratoria.
+        * **Acción:** Monitorización intensiva, reanimación de fluidos si necesario, ajuste de medicación y/o ingreso en UCI.
         """)
+        plan_generado = True
 
     # 2. Optimización de Comorbilidades (V4)
     if p_comorb:
         st.header("2️⃣ Manejo de Comorbilidades (V4)")
-        st.warning("Se requiere interconsulta especializada y/o intensificación del tratamiento.")
+        st.warning("Se requiere interconsulta especializada y/o intensificación del tratamiento de base.")
         
-        if any(c in p_comorb for c in ["ICC", "IAM Reciente", "ACV Reciente"]):
-             st.info("🩺 **Cardiovascular/Neurológico:** Interconsulta con Cardiología/Neurología. Control estricto de TA y anticoagulación.")
+        if any(c in comorb_detalles for c in ["ICC", "IAM Reciente", "ACV Reciente"]):
+             st.info("🩺 **Cardiovascular/Neurológico:** Interconsulta con Cardiología/Neurología. Optimizar TA, control de arritmias, y manejo de anticoagulación.")
         
-        if "EPOC" in p_comorb:
-            st.info("🌬️ **Respiratorio:** Optimizar tratamiento inhalado, fisioterapia respiratoria. Valorar espirometría.")
+        if "EPOC" in comorb_detalles:
+            st.info("🌬️ **Respiratorio:** Optimizar tratamiento broncodilatador, cese tabáquico, fisioterapia respiratoria.")
         
-        if "IRC" in p_comorb:
+        if "IRC" in comorb_detalles:
             st.info("🩸 **Renal:** Control de electrolitos y función renal. Evitar nefrotóxicos.")
         
-        if "Cáncer Av." in p_comorb:
-             st.info(" oncology **Oncológico:** Discutir la ventana de tiempo. Coordinar la cirugía con el tratamiento activo.")
+        if "Hepatopatía" in comorb_detalles:
+            st.info("💊 **Hepatopatía:** Control estricto de la coagulación y valoración nutricional profunda.")
+        
+        plan_generado = True
 
     # 3. Optimización de Fragilidad y Nutrición (V9, V1, V2)
-    if p_fragilidad or p_edad or p_residencia:
-        st.header("3️⃣ Fragilidad y Estado Funcional (V9)")
-        st.info("Programa de prehabilitación multimodal coordinado.")
+    if p_fragilidad or p_edad or p_residencia or p_cognitivo:
+        st.header("3️⃣ Fragilidad y Estado Funcional (V9/V5)")
+        st.info("Programa de prehabilitación multimodal: Nutrición, Ejercicio y Soporte Social/Cognitivo.")
         
         # Nutrición
-        if "Pérdida Peso >5%" in p_fragilidad:
-            st.info("🍎 **Nutrición:** Evaluación por Nutrición/Dietética. Suplementos proteicos orales (SNO) o enterales.")
+        if "Pérdida Peso >5%" in frag_detalles:
+            st.info("🍎 **Nutrición:** Evaluación por Nutrición. Suplementos proteicos orales (SNO) e hipercalóricos para revertir malnutrición.")
         else:
-            st.info("🍎 **Nutrición Básica:** Suplementos si no hay ingesta adecuada. Dieta rica en proteínas.")
+            st.info("🍎 **Nutrición Básica:** Suplementación proteica profiláctica y control de la anemia.")
             
         # Ejercicio
-        if any(c in p_fragilidad for c in ["Fatiga", "Resistencia (Escaleras)", "Deambulación"]):
-            st.info("🏃 **Ejercicio:** Fisioterapia individualizada. Ejercicio aeróbico moderado y entrenamiento de fuerza (si es seguro).")
+        if any(c in frag_detalles for c in ["Fatiga", "Resistencia (Escaleras)", "Deambulación"]):
+            st.info("🏃 **Ejercicio:** Fisioterapia individualizada. Programa supervisado de ejercicio aeróbico y entrenamiento de fuerza. Objetivo: mejorar la capacidad funcional.")
         else:
-            st.info("🏃 **Ejercicio Básico:** Fomentar caminata diaria y actividad funcional.")
+            st.info("🏃 **Ejercicio Básico:** Fomentar caminata diaria y actividad funcional moderada.")
             
-        # Cognitivo
-        if st.session_state.get('p_otros', False):
-            st.info("🧠 **Neurocognitivo:** Valoración cognitiva y social. Terapia ocupacional si es necesario.")
+        # Cognitivo/Social
+        if p_cognitivo or p_residencia:
+            st.info("🧠 **Neuro/Social:** Valoración cognitiva y social (Trabajo Social). Soporte para el cuidado postoperatorio y gestión de la demencia/delirium.")
             
-        # Manejo Social
-        if p_residencia:
-            st.info("🏠 **Soporte Social:** Coordinación con trabajo social para el alta y seguimiento en casa o residencia.")
+        plan_generado = True
 
-    if score_final < 5:
+    if not plan_generado:
         st.header("✨ **Medidas Generales**")
-        st.success("Educación al paciente, cese de tabaco/alcohol, y ayuno preoperatorio estándar.")
+        st.success("Paciente de bajo riesgo. Fomentar cese de tabaco/alcohol y educación preoperatoria estándar.")
