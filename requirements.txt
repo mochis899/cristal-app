@@ -1,5 +1,10 @@
 streamlit
 pandas
 numpy
+matplotlib
+seaborn
 gspread
-google-oauth
+google-auth
+scikit-learn
+scipy
+statsmodels
