@@ -7,7 +7,7 @@ st.set_page_config(page_title="Simulador CriSTAL Interactivo", page_icon="🎚�
 
 # --- FUNCIONES MATEMÁTICAS ---
 def calcular_probabilidad(score):
-    # Fórmula Logística Tesis
+    # Al usar np.exp, esta función acepta tanto números sueltos como arrays enteros
     logit = -3.844 + (0.285 * score)
     prob = 1 / (1 + np.exp(-logit))
     return prob * 100
@@ -80,11 +80,14 @@ with col_visual:
     # --- GENERACIÓN DE LA GRÁFICA ---
     
     # 1. Definir rango X (Score 0 a 20)
+    # Creamos un array de numpy
     x_range = np.arange(0, 20.1, 0.1)
     
     # 2. Definir rango Y (Probabilidades)
-    # 🚨 CORRECCIÓN IMPORTANTE: Convertimos la lista a np.array para evitar el error
-    y_range = np.array([calcular_probabilidad(x) for x in x_range])
+    # 🚨 CORRECCIÓN DEFINITIVA: 
+    # Pasamos el array 'x_range' directamente a la función. 
+    # Esto devuelve automáticamente un array de numpy, evitando las listas de Python.
+    y_range = calcular_probabilidad(x_range)
 
     fig, ax = plt.subplots(figsize=(10, 5))
 
@@ -97,7 +100,8 @@ with col_visual:
     # Dibujar la curva negra principal
     ax.plot(x_range, y_range, color='black', linewidth=2, alpha=0.6)
     
-    # Opcional: Rellenar área roja si supera el 50% (Ahora funciona gracias a np.array)
+    # Opcional: Rellenar área roja si supera el 50%
+    # Ahora 'y_range' es 100% seguro un array numérico, por lo que la comparación >= 50 funcionará.
     ax.fill_between(x_range, y_range, 50, where=(y_range >= 50), color='red', alpha=0.2)
 
     # Dibujar el PUNTO DEL PACIENTE
@@ -132,4 +136,4 @@ with col_visual:
         st.warning("🟠 **Zona de Peligro:** La mortalidad es alta (>38%). Valorar riesgo/beneficio.")
     else:
         st.error("🔴 **Zona Crítica:** La mortalidad supera el 50%. Pronóstico muy reservado.")
-        
+    
