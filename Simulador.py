@@ -1,139 +1,120 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
-# --- CONFIGURACIÓN DE LA PÁGINA ---
-st.set_page_config(page_title="Simulador CriSTAL Interactivo", page_icon="🎚️", layout="wide")
+# --- 1. CONFIGURACIÓN ---
+st.set_page_config(page_title="Simulador CriSTAL V2", page_icon="🎚️", layout="wide")
 
-# --- FUNCIONES MATEMÁTICAS ---
+# Configuración estética de las gráficas
+sns.set_style("whitegrid")
+plt.rcParams['font.family'] = 'sans-serif'
+
+# --- 2. FUNCIONES MATEMÁTICAS ---
 def calcular_probabilidad(score):
-    # Al usar np.exp, esta función acepta tanto números sueltos como arrays enteros
+    # L = -3.844 + 0.285 * Score
     logit = -3.844 + (0.285 * score)
     prob = 1 / (1 + np.exp(-logit))
     return prob * 100
 
-def obtener_color_riesgo(score):
-    if score < 8: return "#2ecc71"   # Verde (Bajo)
-    elif score < 12: return "#f1c40f" # Amarillo (Intermedio)
-    elif score < 14: return "#e67e22" # Naranja (Alto)
-    else: return "#e74c3c"            # Rojo (Crítico)
+def obtener_color(score):
+    if score < 8: return "#2ecc71"   # Verde
+    elif score < 12: return "#f1c40f" # Amarillo
+    elif score < 14: return "#e67e22" # Naranja
+    else: return "#e74c3c"            # Rojo
 
-# --- INTERFAZ DE USUARIO ---
-st.title("🎚️ Simulador de Riesgo CriSTAL")
-st.markdown("Selecciona las variables clínicas para ver el impacto en el riesgo en tiempo real.")
+# --- 3. INTERFAZ ---
+st.title("🎚️ Simulador Interactivo CriSTAL")
+st.info("ℹ️ Haz clic en los recuadros. El cálculo debe actualizarse AUTOMÁTICAMENTE.")
 
-# Dividir la pantalla en 2 columnas
-col_controles, col_visual = st.columns([1, 2])
+col_izq, col_der = st.columns([1, 2])
 
-# --- COLUMNA IZQUIERDA: CONTROLES ---
-with col_controles:
-    st.subheader("Variables del Paciente")
+with col_izq:
+    st.subheader("📝 Marca las casillas:")
     
-    pts = 0
+    # --- SUMA EN TIEMPO REAL ---
+    puntos = 0
     
-    # Variables individuales
-    if st.checkbox("1. Edad > 65 años (+1)"): pts += 1
-    if st.checkbox("2. Vive en Residencia/Asilo (+1)"): pts += 1
-    if st.checkbox("3. Estado Fisiológico (≥2 alt.) (+1)"): pts += 1
+    # Checkboxes directos (sin formularios)
+    if st.checkbox("1. Edad > 65 años (+1)", value=True): puntos += 1
+    if st.checkbox("2. Residencia / Asilo (+1)"): puntos += 1
+    if st.checkbox("3. Estado Fisiológico Agudo (+1)", value=True): puntos += 1
     
-    st.markdown("**4. Comorbilidades (+1 c/u):**")
-    comorbs = st.multiselect("Selecciona patologías:", 
-        ["Cáncer", "IRC", "ICC", "EPOC", "ACV", "IAM", "Hepatopatía"])
-    pts += len(comorbs)
+    st.markdown("---")
+    # Comorbilidades
+    comorbilidades = st.multiselect("4. Comorbilidades (+1 c/u):", 
+        ["Cáncer", "Insuf. Renal", "Insuf. Cardíaca", "EPOC", "ACV", "IAM", "Hepatopatía"],
+        default=["Cáncer", "Insuf. Renal", "Insuf. Cardíaca", "EPOC", "ACV"]) # Default para que coincida con tu ejemplo
+    puntos += len(comorbilidades)
     
-    st.markdown("**Otros Factores (+1 c/u):**")
-    if st.checkbox("5. Deterioro Cognitivo"): pts += 1
-    if st.checkbox("6. Ingreso Previo (<1 año)"): pts += 1
-    if st.checkbox("7. Proteinuria"): pts += 1
-    if st.checkbox("8. ECG Anormal"): pts += 1
+    st.markdown("---")
+    # Otros factores
+    if st.checkbox("5. Deterioro Cognitivo (+1)"): puntos += 1
+    if st.checkbox("6. Ingreso Previo (+1)"): puntos += 1
+    if st.checkbox("7. Proteinuria (+1)"): puntos += 1
+    if st.checkbox("8. ECG Anormal (+1)"): puntos += 1
     
-    st.markdown("**9. Fragilidad FRAIL (+1 c/u):**")
-    frail = st.multiselect("Selecciona ítems FRAIL:", 
+    st.markdown("---")
+    # Fragilidad
+    fragilidad = st.multiselect("9. Fragilidad FRAIL (+1 c/u):", 
         ["Fatiga", "Resistencia", "Deambulación", "Enfermedades", "Pérdida Peso"])
-    pts += len(frail)
+    puntos += len(fragilidad)
 
-    # Score final (máximo 20)
-    score_final = min(pts, 20)
+    # Límite máximo
+    score_final = min(puntos, 20)
+    
+    # DEBUG VISUAL: Verificamos que el contador funcione
+    st.write(f"🔢 **Puntos contados:** {puntos}")
 
-# --- CÁLCULOS ---
+
+# --- 4. CÁLCULOS Y GRÁFICA ---
 prob_actual = calcular_probabilidad(score_final)
-color_actual = obtener_color_riesgo(score_final)
+color_actual = obtener_color(score_final)
 
-# --- COLUMNA DERECHA: VISUALIZACIÓN ---
-with col_visual:
-    # Tarjetas de resultado
+with col_der:
+    # Tarjetas Superiores
     c1, c2 = st.columns(2)
     c1.metric("Score Total", f"{score_final} / 20")
     
-    c2.markdown(
-        f"""
-        <div style="background-color:{color_actual}20; border: 2px solid {color_actual}; border-radius: 5px; padding: 0px 10px; text-align: center;">
-            <p style="color: {color_actual}; margin:0; font-weight:bold;">Probabilidad Mortalidad</p>
-            <h2 style="color: {color_actual}; margin:0;">{prob_actual:.1f}%</h2>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
+    # Tarjeta de Probabilidad con color dinámico
+    c2.markdown(f"""
+    <div style="background-color:{color_actual}20; border:2px solid {color_actual}; border-radius:5px; padding:10px; text-align:center;">
+        <strong style="color:{color_actual}">Probabilidad Mortalidad</strong>
+        <h1 style="color:{color_actual}; margin:0;">{prob_actual:.1f}%</h1>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.write("") # Espacio
-    
+    st.write("") # Espaciador
+
     # --- GENERACIÓN DE LA GRÁFICA ---
-    
-    # 1. Definir rango X (Score 0 a 20)
-    # Creamos un array de numpy
-    x_range = np.arange(0, 20.1, 0.1)
-    
-    # 2. Definir rango Y (Probabilidades)
-    # 🚨 CORRECCIÓN DEFINITIVA: 
-    # Pasamos el array 'x_range' directamente a la función. 
-    # Esto devuelve automáticamente un array de numpy, evitando las listas de Python.
-    y_range = calcular_probabilidad(x_range)
-
     fig, ax = plt.subplots(figsize=(10, 5))
-
-    # Dibujar zonas de riesgo (Fondo de color)
-    ax.axvspan(0, 8, color='#2ecc71', alpha=0.1)   # Bajo
-    ax.axvspan(8, 12, color='#f1c40f', alpha=0.1)  # Intermedio
-    ax.axvspan(12, 14, color='#e67e22', alpha=0.1) # Alto
-    ax.axvspan(14, 20, color='#e74c3c', alpha=0.1) # Crítico
-
-    # Dibujar la curva negra principal
-    ax.plot(x_range, y_range, color='black', linewidth=2, alpha=0.6)
     
-    # Opcional: Rellenar área roja si supera el 50%
-    # Ahora 'y_range' es 100% seguro un array numérico, por lo que la comparación >= 50 funcionará.
-    ax.fill_between(x_range, y_range, 50, where=(y_range >= 50), color='red', alpha=0.2)
+    # 1. Rango X y Y (Usando NumPy para evitar errores de lista)
+    x = np.arange(0, 20.1, 0.1)
+    y = calcular_probabilidad(x) # Vectorización directa
 
-    # Dibujar el PUNTO DEL PACIENTE
-    ax.scatter(score_final, prob_actual, color=color_actual, s=250, zorder=10, edgecolors='black', label='Tu Paciente')
+    # 2. Dibujar zonas
+    ax.axvspan(0, 8, color='#2ecc71', alpha=0.1)
+    ax.axvspan(8, 12, color='#f1c40f', alpha=0.1)
+    ax.axvspan(12, 14, color='#e67e22', alpha=0.1)
+    ax.axvspan(14, 20, color='#e74c3c', alpha=0.1)
 
-    # Líneas guía hacia los ejes
+    # 3. Dibujar curva
+    ax.plot(x, y, color='black', alpha=0.6, linewidth=2)
+
+    # 4. PUNTO DEL PACIENTE (Grande y visible)
+    ax.scatter(score_final, prob_actual, s=300, color=color_actual, edgecolors='black', zorder=10)
+    
+    # 5. Líneas guía
     ax.axvline(score_final, color=color_actual, linestyle='--', ymax=prob_actual/100)
     ax.axhline(prob_actual, color=color_actual, linestyle='--', xmax=score_final/20)
 
-    # Etiquetas y estilo
-    ax.set_xlabel("Score Total", fontweight='bold')
-    ax.set_ylabel("Probabilidad (%)", fontweight='bold')
+    # Ajustes finales
     ax.set_xlim(0, 20)
     ax.set_ylim(0, 100)
-    ax.set_xticks(range(0, 21, 2))
+    ax.set_xlabel("Score Total (Puntos)", fontweight='bold')
+    ax.set_ylabel("Probabilidad (%)", fontweight='bold')
     ax.grid(True, linestyle=':', alpha=0.5)
-    
-    # Texto de las zonas
-    ax.text(4, 5, "Bajo", color='#27ae60', ha='center', fontweight='bold')
-    ax.text(10, 5, "Intermedio", color='#f39c12', ha='center', fontweight='bold')
-    ax.text(13, 5, "Alto", color='#d35400', ha='center', fontweight='bold')
-    ax.text(17, 5, "Crítico", color='#c0392b', ha='center', fontweight='bold')
 
     st.pyplot(fig)
-
-    # Mensaje clínico final
-    if score_final < 8:
-        st.info("🟢 **Zona Segura:** El riesgo es bajo. Buen candidato para cirugía estándar.")
-    elif score_final < 12:
-        st.warning("🟡 **Zona de Alerta:** El riesgo se eleva. Requiere optimización.")
-    elif score_final < 14:
-        st.warning("🟠 **Zona de Peligro:** La mortalidad es alta (>38%). Valorar riesgo/beneficio.")
-    else:
-        st.error("🔴 **Zona Crítica:** La mortalidad supera el 50%. Pronóstico muy reservado.")
     
